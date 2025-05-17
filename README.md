@@ -30,17 +30,21 @@ A Django + DRF-based backend to manage user subscriptions, plans, automated invo
 
 ## ⚙️ Setup Instructions
 
-### 1. Clone and Install
+### Clone and Install
 
-```bash
-git clone <repo_url>
-cd subscription_billing
-python -m venv env
-source env/bin/activate
-pip install -r requirements.txt ```
-
-
-
+```git clone https://github.com/ValacShadow/SubBillPilot.git```
+```python -m venv env```
+```source env/bin/activate```
+```pip install -r requirements.txt```
+### Run Migrations
+ ```python manage.py migrate ```
+### Start Redis
+```docker run -d -p 6379:6379 --name redis-billing-service redis```
+### Run Celery
+```celery -A subcriptionBillingService worker --loglevel=info```
+```celery -A subcriptionBillingService beat --loglevel=info```
+### Start Server
+```python manage.py runserver```
 
 | URL                       | Method | Description                 |
 | ------------------------- | ------ | --------------------------- |
@@ -53,6 +57,27 @@ pip install -r requirements.txt ```
 | `/api/invoices/<id>/`     | GET    | View invoice detail         |
 | `/api/invoices/<id>/pay/` | POST   | Mock pay an invoice         |
 
+# Scheduled Celery Tasks
 
-## Run Migrations
- python manage.py migrate
+| Task Name              | Task Path                              | Schedule           | Description                     |
+|------------------------|--------------------------------------|--------------------|---------------------------------|
+| Generate Invoices Daily | `subscription_billing.tasks.generate_invoices` | Every day at 10:00 AM  | Generates invoices for active subscriptions daily at 10 AM. |
+| Mark Overdue Invoices  | `subscription_billing.tasks.mark_overdue_invoices` | Every day at 12:00 AM (midnight) | Marks pending invoices as overdue at midnight daily. |
+| Send Invoice Reminders  | `subscription_billing.tasks.queue_reminders` | Every day at 9:00 PM    | Sends reminder emails for overdue invoices daily at 9 PM. |
+
+---
+
+**Note:** All times are in server timezone (usually UTC unless configured otherwise).
+
+### Run task manually
+```python manage.py shell```
+```from subscription_billing.tasks import generate_invoices```
+```generate_invoices.delay()```
+
+
+
+
+
+
+
+
